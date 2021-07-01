@@ -73,3 +73,5 @@ newmat %>%
        title = "Proportion of words found in tweets")
 #my laptop shut down unexpectedly i couldn't save the plot.
 #i dont know if it runs correctly, but i think it should
+
+new_code <- vector()
