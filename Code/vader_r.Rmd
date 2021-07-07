@@ -1,0 +1,138 @@
+---
+title: "Vader, but on R"
+author: "Jakob Woerner"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: 'united'
+    highlight: 'tango'
+    toc: yes
+    toc_float: true
+    code_folding: 'show'
+    df_print: 'paged'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,comment = NA)
+```
+
+# Setup
+```{r, warning=FALSE, message=FALSE}
+library(vader);library(xlsx);library(tidyverse)
+```
+
+# Goal
+
+Run cleaning and then Vader sentiment analysis, but using R.
+
+
+# Load Data
+
+```{r, warning=TRUE, message=FALSE}
+vaccine_college_500 <- read_csv("data/vaccine_college_500.csv")
+vaccine_college_500_2 <- read_csv("data/vaccine_college_500_2.csv")
+```
+
+# Clean Data
+
+```{r}
+vc <- bind_rows(vaccine_college_500, vaccine_college_500_2)
+```
+
+
+Remove first 'b'
+
+```{r}
+vc1 <- vc %>% 
+  mutate(clean_text = str_sub(text, 2)) %>% 
+  select(clean_text, everything())
+```
+
+Remove URLs and newline characters
+
+```{r}
+vc2 <- vc1 %>% 
+  mutate(clean_text = gsub("http.*","",  clean_text)) %>% 
+  mutate(clean_text = gsub("https.*","",  clean_text)) %>% 
+  mutate(clean_text = gsub("\\\\n","",  clean_text))
+```
+
+Let's not make lowercase or remove special characters, since those might be used in the vader algorithm.
+
+Remove @, quotation marks, and apostraphes
+
+```{r}
+vc2$clean_text <- gsub("'", '', vc2$clean_text)
+vc2$clean_text <- gsub('"', '', vc2$clean_text)
+vc2$clean_text <- gsub("@\\w+", "", vc2$clean_text)
+```
+
+Remove duplicates
+
+```{r}
+vc3 <- vc2[!duplicated(vc2$clean_text),]
+```
+
+# Apply vader    
+
+```{r}
+t1 <- Sys.time()
+vader_result <- vader_df(vc3$clean_text) 
+t2 <- t1 - Sys.time()
+```
+About 7 minutes
+
+
+No neutral words
+
+```{r}
+# Creates Error
+# vader_result_2 <- vader_df(vc3$clean_text[1:10], neu_set = TRUE) 
+```
+
+# Save Data
+
+```{r}
+write.csv(vc3, "sentiment_clean_college_data.csv")
+write.csv(vader_result, "vader_result_R.csv")
+# write.csv(vader_result_2, "vader_no_neutral_R.csv")
+```
+
+# Neutralize
+
+Recode to remove the neutral category. I will also remove the "Pin Code:[411041]" tweets
+
+```{r}
+vader_no_neutral <- vader_result %>% 
+  filter(!str_detect(text, "Pin Code|Pincode")) %>% 
+  drop_na() %>% # redundant
+  mutate(positive = pos / (pos + neg),
+         negative = neg / (pos + neg),
+         neutral = if_else(neu == 1, 1, 0),
+         assigned = if_else(neu == 1, "Neutral",
+                            if_else(positive > 0.5, "Positive","Negative")))
+
+write.csv(vader_no_neutral, "vader_no_nuetral_R.csv")
+```
+
+# Save sample
+
+```{r}
+set.seed(2021)
+vader_sample <- vader_no_neutral %>% 
+  select(text, positive, negative, assigned) %>%
+  drop_na() %>% 
+  sample_n(500)
+  
+write.xlsx(vader_sample, file = "data/vader_sample.xlsx",row.names = FALSE)
+```
+
+
+
+
+# Session Information
+```{r}
+sessioninfo::session_info()
+```
+
+
