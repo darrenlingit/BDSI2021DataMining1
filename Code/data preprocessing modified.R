@@ -6,29 +6,33 @@ library(igraph)
 library(ggraph)
 library(textmineR)
 library(SnowballC)
-setwd("C:/Users/STST/Downloads")
-tweet_data=read.csv("vaccine_college_500.csv", header=TRUE)
-tweet_data2=read.csv("vaccine_college_500_2.csv", header=TRUE)
-tweet_data3=read.csv("vaccine_college_500_3.csv", header=TRUE)
+
+#loading and combining
+tweet_data=read.csv("../Data/vaccine_college_500.csv", header=TRUE)
+tweet_data2=read.csv("../Data/vaccine_college_500_2.csv", header=TRUE)
+tweet_data3=read.csv("../Data/vaccine_college_500_3.csv", header=TRUE)
 tweet_datatemp = rbind(tweet_data, tweet_data2)
 tweet_data = rbind(tweet_datatemp,tweet_data3)
+
+#removing duplicates, urls
 tweet_data = tweet_data[!duplicated(tweet_data$text),]
 tweet_data$stripped_text <- gsub("http.*","",  tweet_data$text)
 
-
+#making dtm
 dtm<- CreateDtm(tweet_data$stripped_text,
-                       ngram_window = c(1, 1), stopword_vec = c(tm::stopwords("english"), tm::stopwords("SMART")),
-                      lower = TRUE,
-                     remove_punctuation = TRUE,
-                     remove_numbers = TRUE,
-                     stem_lemma_function = wordStem)
+                ngram_window = c(1, 1),
+                stopword_vec = c(tm::stopwords("english"), tm::stopwords("SMART")),
+                lower = TRUE,
+                remove_punctuation = TRUE,
+                remove_numbers = TRUE,
+                stem_lemma_function = wordStem)
 
 dtm.df = as.data.frame(as.matrix(dtm)) #in case we want it as a dataframe
-write.csv(dtm.df , "dtm_updated.csv")
+write.csv(dtm.df , "../Data/dtm_updated.csv")
 
 dtm50 = dtm[,(colSums(dtm)>50)]
 dtm50.df = as.data.frame(as.matrix(dtm50)) #in case we want it as a dataframe
-write.csv(dtm50.df , "dtm50_week3.csv")
+write.csv(dtm50.df , "../Data/dtm50_week3.csv")
 
 tweet_data$slot_tweet <- str_count(tweet_data$text, "Navale Medical College")
 tweet_data_new = tweet_data[-(which(tweet_data$slot_tweet > 0)),]
