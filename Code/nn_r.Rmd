@@ -18,12 +18,14 @@ knitr::opts_chunk$set(echo = TRUE,comment = NA)
 
 # Setup
 ```{r, warning=FALSE, message=FALSE}
-
+library(neuralnet);library(caTools)
 ```
 
 # Goal
 
 Assess neural networks on the same data as the random forest to predict vaccine acceptance.
+
+We will use this [website](https://www.kdnuggets.com/2016/08/begineers-guide-neural-networks-r.html) as a guide.
 
 
 # Load Data
@@ -32,7 +34,99 @@ Assess neural networks on the same data as the random forest to predict vaccine 
 dtm <- read_csv("../Data/xxx.csv")
 ```
 
-#
+# Data Preprocessing
+
+```{r}
+col_length <- ncol(dtm)
+```
+
+
+```{r}
+# Create Vector of Column Max and Min Values
+maxs <- apply(College[,2:col_length], 2, max)
+mins <- apply(College[,2:col_length], 2, min)
+
+# Use scale() and convert the resulting matrix to a data frame
+scaled.data <- as.data.frame(scale(College[,2:col_length],center = mins, scale = maxs - mins))
+
+# Check out results
+print(head(scaled.data,2))
+```
+
+# Train and Test Split
+
+```{r}
+# Convert Private column from Yes/No to 1/0
+Private = as.numeric(College$Private)-1
+data = cbind(Private,scaled.data)
+
+set.seed(2021)
+
+# Create Split (any column is fine)
+split = sample.split(data$Private, SplitRatio = 0.70)
+
+# Split based off of split Boolean Vector
+train = subset(data, split == TRUE)
+test = subset(data, split == FALSE)
+```
+
+
+# Neural Network Function
+
+```{r}
+feats <- names(scaled.data)
+
+# Concatenate strings
+f <- paste(feats,collapse=' + ')
+f <- paste('Private ~',f)
+
+# Convert to formula
+f <- as.formula(f)
+
+f
+
+nn <- neuralnet(f,train,hidden=c(10,10,10),linear.output=FALSE)
+```
+
+# Prediction and Evaluation
+
+```{r}
+# Compute Predictions off Test Set
+predicted.nn.values <- compute(nn,test[2:18])
+
+# Check out net.result
+print(head(predicted.nn.values$net.result))
+```
+
+
+```{r}
+predicted.nn.values$net.result <- sapply(predicted.nn.values$net.result,round,digits=0)
+```
+
+
+```{r}
+table(test$Private,predicted.nn.values$net.result)
+```
+
+# Repeat Assessment from Random Forest
+
+```{r}
+kfold_forest_validation <- function(features, labels, k = 4, shuf = FALSE){
+    k_fold <- KFold(n_splits = k, shuffle=shuf)
+    
+    rfc <- RandomForestClassifier()
+    rfc_list = []
+    
+    for k, (train, test) in enumerate(k_fold.split(features)):
+        rfc.fit(features[train], labels[train]) # fitting training data
+        label_pred = rfc.predict(features[test]) # predicting using trained data and features from test dataset
+        rfc_acc = (label_pred == labels[test]).sum() / test.size # proportion of correctly predicted labels, accuracy
+        rfc_list.append(rfc_acc)
+    
+    return np.mean(rfc_list)
+}
+    
+```
 
 
 
