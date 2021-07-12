@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE,comment = NA)
 
 # Setup
 ```{r, warning=FALSE, message=FALSE}
-library(neuralnet);library(caTools)
+library(neuralnet);library(caTools);library(tidyverse)
 ```
 
 # Goal
@@ -31,43 +31,47 @@ We will use this [website](https://www.kdnuggets.com/2016/08/begineers-guide-neu
 # Load Data
 
 ```{r, warning=TRUE, message=FALSE}
-dtm <- read_csv("../Data/xxx.csv")
+dtm <- read_csv("../Data/term_matrix_sentiment_va.csv", 
+    col_names = FALSE)
 ```
+
+Last four columns are (in order from left to right):
+* sentiment labels (positive = 1, negative = 0)
+* Positive sentiment value(0-1)
+* Negative sentiment value (0-1)
+* Pro or anti vaccine labels (positive = 1, negative = 0)
+
 
 # Data Preprocessing
 
 ```{r}
-col_length <- ncol(dtm)
+var_length <- ncol(dtm) - 4
 ```
 
 
 ```{r}
 # Create Vector of Column Max and Min Values
-maxs <- apply(College[,2:col_length], 2, max)
-mins <- apply(College[,2:col_length], 2, min)
+maxs <- apply(dtm[,1:var_length], 2, max)
+mins <- apply(dtm[,1:var_length], 2, min)
 
 # Use scale() and convert the resulting matrix to a data frame
-scaled.data <- as.data.frame(scale(College[,2:col_length],center = mins, scale = maxs - mins))
-
-# Check out results
-print(head(scaled.data,2))
+scaled.data <- as.data.frame(scale(dtm[,1:var_length],center = mins, scale = maxs - mins))
 ```
 
 # Train and Test Split
 
 ```{r}
-# Convert Private column from Yes/No to 1/0
-Private = as.numeric(College$Private)-1
-data = cbind(Private,scaled.data)
+VA <- dtm[,1311] %>% rename(VA = X1311)
+data <- cbind(VA,scaled.data)
 
 set.seed(2021)
 
 # Create Split (any column is fine)
-split = sample.split(data$Private, SplitRatio = 0.70)
+split <- sample.split(data$VA, SplitRatio = 0.70)
 
 # Split based off of split Boolean Vector
-train = subset(data, split == TRUE)
-test = subset(data, split == FALSE)
+train <- subset(data, split == TRUE)
+test <- subset(data, split == FALSE)
 ```
 
 
@@ -78,12 +82,10 @@ feats <- names(scaled.data)
 
 # Concatenate strings
 f <- paste(feats,collapse=' + ')
-f <- paste('Private ~',f)
+f <- paste('VA ~',f)
 
 # Convert to formula
 f <- as.formula(f)
-
-f
 
 nn <- neuralnet(f,train,hidden=c(10,10,10),linear.output=FALSE)
 ```
@@ -92,7 +94,8 @@ nn <- neuralnet(f,train,hidden=c(10,10,10),linear.output=FALSE)
 
 ```{r}
 # Compute Predictions off Test Set
-predicted.nn.values <- compute(nn,test[2:18])
+detach("package:dplyr", unload=TRUE)
+predicted.nn.values <- compute(nn,test[2:(var_length + 1)])
 
 # Check out net.result
 print(head(predicted.nn.values$net.result))
@@ -105,27 +108,47 @@ predicted.nn.values$net.result <- sapply(predicted.nn.values$net.result,round,di
 
 
 ```{r}
-table(test$Private,predicted.nn.values$net.result)
+table(test$VA,predicted.nn.values$net.result)
 ```
+```{r}
+sum(diag(table(test$VA,predicted.nn.values$net.result)))/ sum(table(test$VA,predicted.nn.values$net.result))
+```
+
+
 
 # Repeat Assessment from Random Forest
 
 ```{r}
-kfold_forest_validation <- function(features, labels, k = 4, shuf = FALSE){
-    k_fold <- KFold(n_splits = k, shuffle=shuf)
-    
-    rfc <- RandomForestClassifier()
-    rfc_list = []
-    
-    for k, (train, test) in enumerate(k_fold.split(features)):
-        rfc.fit(features[train], labels[train]) # fitting training data
-        label_pred = rfc.predict(features[test]) # predicting using trained data and features from test dataset
-        rfc_acc = (label_pred == labels[test]).sum() / test.size # proportion of correctly predicted labels, accuracy
-        rfc_list.append(rfc_acc)
-    
-    return np.mean(rfc_list)
+kfold_nn_validation <- function(df = data, form = f, k = 5){
+  
+  vars <- ncol(df) - 1 # number of predictors (terms)
+  k_fold <- split(df, sample(1:k, nrow(df), replace=T)) # splitting into groups
+  nn_acc = vector() # initializing results vector
+  iter <- 1:k # structure for splitting up data
+  
+  
+  for(i in 1:k){ # training and testing k times
+    these_folds <- iter[-i] # indices of training data
+    train <- k_fold[[these_folds[1]]] # first fold in training data
+    for (j in 2:(k-1)) { # remaining folds in training data
+      train <- rbind(train,k_fold[[these_folds[j]]])
+    }
+    test <- k_fold[[i]] # fold in test data
+    nn <- neuralnet(f,train,hidden=c(10,10,10),linear.output=FALSE) #training neural network model
+    predicted.nn.values <- compute(nn,test[2:(vars + 1)]) # predicting training set with test set
+    predicted.nn.values$net.result <- sapply(predicted.nn.values$net.result,round,digits=0) 
+    nn_acc <- c(nn_acc,sum(diag(table(test$VA,predicted.nn.values$net.result))) / sum(table(test$VA,predicted.nn.values$net.result))) # calculating accuracy
+  }
+  return(mean(nn_acc))
 }
-    
+
+set.seed(2021)
+kfold_nn_validation()
+```
+
+```{r}
+set.seed(2021)
+kfold_nn_validation(k = 10)
 ```
 
 
