@@ -99,7 +99,8 @@ vader_no_neutral <- vader_result %>%
 
 ```{r}
 vader_final <- vader_no_neutral %>% 
-  select(text, positive, negative, assigned)
+  select(text, positive, negative, assigned) %>% 
+  drop_na()
 
 write.csv(vader_final, "../Data/vader_result_final.csv")
 ```
