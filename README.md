@@ -8,3 +8,10 @@ Jamie Forschmiedt, Darren Lin, Tannistha Mondal, Jakob Woerner
 
 ### Project mentors:
 Dr. Johann Gagnon-Bartsch, Juejue Wang, Heather Johnston
+
+### Steps:
+
+1. Download tweets with "Downloading Tweets to a CSV.ipynb"
+2. Determine sentiments with "vader_r_final.Rmd"
+3. Classify pro-vaccine or anti-vaccine with "Random Forest Labeling.ipynb"
+4. Cluster with "monocle3.R"
