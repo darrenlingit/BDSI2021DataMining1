@@ -9,7 +9,10 @@ WORKDIR /home/rep/
 RUN /usr/bin/python3 -m pip install --upgrade pip
 
 ### Packages
-RUN pip install sklearn nltk umap umap-learn hdbscan chart_studio
+RUN pip install numpy scipy matplotlib pandas
+RUN pip install sklearn nltk
+RUN R -e 'install.packages(c("tidyverse", "devtools", "reticulate", "renv"))'
+
 
 WORKDIR /home/rep/
 COPY Code/Downloading Tweets to a CSV.ipynb Code/Downloading Tweets to a CSV.ipynb
