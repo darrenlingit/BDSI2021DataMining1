@@ -2,93 +2,96 @@ library(monocle3)
 library(dbscan)
 library(fpc)
 library(cluster)
-df = read.csv("tweet_dtm.csv", header = TRUE)
-df_VA1 = df[which(df[,6] == 1), -c(1:6)]
-df_VA0 = df[which(df[,6] == 0), -c(1:6)]
-df_sent1 = df[which(df[,4] == 1), -c(1:6)]
-df_sent0 = df[which(df[,4] == 0), -c(1:6)]
-tdist_VA1 = dist2(as.matrix(df_VA1), y = NULL, method = "euclidean", norm = "none") #instead of df
-#use appropriate dtm
-tdist_VA0 = dist2(as.matrix(df_VA0), y = NULL, method = "euclidean", norm = "none")
-tdist_sent1 = dist2(as.matrix(df_sent1), y = NULL, method = "euclidean", norm = "none")
-tdist_sent0 = dist2(as.matrix(df_sent0), y = NULL, method = "euclidean", norm = "none")
-cell_names_VA1 = df[which(df[,6] == 1), 1]
-cell_names_VA0 = df[which(df[,6] == 0), 1]
-cell_names_sent1 = df[which(df[,4] == 1), 1]
-cell_names_sent0 = df[which(df[,4] == 0), 1]
-gene_VA1 = colnames(df_VA1)
-gene_VA0 = colnames(df_VA0)
-gene_sent1 = colnames(df_sent1)
-gene_sent0 = colnames(df_sent0)
-gene_annotation = as.data.frame(matrix(gene_VA1, ncol = 1))
+
+#read in a dtm file "XXXX.csv"
+
+df = read.csv("XXXX.csv", header = TRUE)
+
+#creating the cell (document) metadata and gene (term) annotation data frames
+cell_names = df[,1]
+rownames(df) = df[,1]
+df = df[,-1]
+cell_metadata = as.data.frame(matrix(cell_names, ncol = 1))
+
+colnames(cell_metadata) = c("tweets")
+rownames(cell_metadata) = cell_names
+
+df = df[,colSums(df)>2] #removing terms that occur less than 2 times in the tweets 
+#(for the original datasets. We skipped this for subsequent steps of clustering)
+
+gene = colnames(df)
+gene_annotation = as.data.frame(matrix(gene, ncol = 1))
 colnames(gene_annotation) = c("gene_short_name")
-rownames(gene_annotation) = gene_VA1
-cell_metadata_VA1 = as.data.frame(matrix(cell_names_VA1, ncol = 1))
-cell_metadata_VA0 = as.data.frame(matrix(cell_names_VA0, ncol = 1))
-cell_metadata_sent1 = as.data.frame(matrix(cell_names_sent1, ncol = 1))
-cell_metadata_sent0 = as.data.frame(matrix(cell_names_sent0, ncol = 1))
-
-colnames(cell_metadata_VA1) = c("tweets")
-rownames(cell_metadata_VA1) = cell_names_VA1
-colnames(cell_metadata_VA0) = c("tweets")
-rownames(cell_metadata_VA0) = cell_names_VA0
-colnames(cell_metadata_sent1) = c("tweets")
-rownames(cell_metadata_sent1) = cell_names_sent1
-colnames(cell_metadata_sent0) = c("tweets")
-rownames(cell_metadata_sent0) = cell_names_sent0
-
-rownames(tdist_VA1) = cell_names_VA1
-colnames(tdist_VA1) = rownames(tdist_VA1)
-rownames(df_VA1) = rownames(tdist_VA1)
-rownames(tdist_VA0) = cell_names_VA0
-colnames(tdist_VA0) = rownames(tdist_VA0)
-rownames(df_VA0) = rownames(tdist_VA0)
-rownames(tdist_sent1) = cell_names_sent1
-colnames(tdist_sent1) = rownames(tdist_sent1)
-rownames(df_sent1) = rownames(tdist_sent1)
-rownames(tdist_sent0) = cell_names_sent0
-colnames(tdist_sent0) = rownames(tdist_sent0)
-rownames(df_sent0) = rownames(tdist_sent0)
+rownames(gene_annotation) = gene
 
 #from the next line on, replace df with any of the previous dataframes created
 cds <- new_cell_data_set(t(df),
                          cell_metadata = cell_metadata,
                          gene_metadata = gene_annotation)
+#estimate size factors:
 cds <- cds[,Matrix::colSums(exprs(cds)) != 0]
 cds <- estimate_size_factors(cds)
-size_factors(cds)
-
-#cds <- new_cell_data_set(t(df),cell_metadata = df,gene_metadata = t(df))
-#colData(cds)$Size_Factor = rep(1, length(df[,1]))
 #size_factors(cds)
+
+#preprocess the cell dataset and reduce dimensions. We haven't specified
+#any particular method for dimension reduction. So by default PCA will be chosen
 cds <- preprocess_cds(cds, num_dim = 100)
 plot_pc_variance_explained(cds)
 cds <- reduce_dimension(cds)
 plot_cells(cds)
-plot_cells(cds, genes=c("student","requir", "mandat", "univ"))
+#We marked the tweets by 4 particular words belonging to our dataset
+#plot_cells(cds, genes=c("student","requir", "mandat", "univ"))
 
-cds1 = cds
-cds1 = cluster_cells(cds1, resolution=1e-5)
-plot_cells(cds1)
+#now before clustering, we may want to use dbscan for detecting small communities and noise.
+#In our case, dbscan detected most of the tweets as noise and 
+#since we already had a small dataset to begin with, we skipped this step to apply the 
+#phenograph algorithm of monocle3 to the entire dataset
+#but depending on the data, this step may be necessary
 
-#for dbscan, need to specify tuning parameters eps and minPts. For minPts,
-#take ln(n) and for eps, take the value at which there is a knee in the knn dist plot
-#set the tuning parameters of dbscan to these 2 parameters and from the results of dbscan,
-#remove the noise, if necessary
-kNNdistplot(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),])
- #silhouette analysis for deciding upon the number of k nearest neighbours
+#for dbscan, we need to specify tuning parameters eps and minPts. For minPts,
+#take ln(n) (n is the number of tweets) and for eps, take the value at which 
+#there is a knee in the knn dist plot
+kNNdistplot(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),], minPts)
+#set the tuning parameters of dbscan to these 2 values
+ds = fpc::dbscan(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),],eps,minPts)
+
+#now we have to determine the optimal value of k for the k nearest neighbours parameter
+#for clustering. This may be done by calculating and plotting the average silhouette width for varying k
+#for large k, number of clusters decreases and for small k, the reverse happens. For our data, 
+#we mostly considered k=4,8,12,16,20 (because our dataset was small, and for k=20 in most cases
+#the number of clusters became 1 or 2) and looking at the clustering results, chose the optimal one
+#depending upon how large the smallest cluster was and what we intended to do from the clustering results
+#In our case, the highest silhouette width was for k=4, but sometimes we chose higher values of k
+#as for k=4 there were often too many clusters, with smallest clusters containing not many tweets.
+#So, i guess, this step depends a lot on what we intend to do with the clustering results.
+#silhouette analysi:
+
 sil = c(); i = 1
 while(i <= 10){
   cdsi = cds
   cdsi = cluster_cells(cdsi, k=4*i, resolution=1e-5)
   s = silhouette(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership , 
                  dmatrix = tdist[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),
-                       names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership)])
+                                 names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership)])
   sil[i] = summary(s)$avg.width
   print(sil[i])
   i = i+1
 }
+plot(sil)
 
+#if optimal value of k is k:
+cds1 = cds
+cds1 = cluster_cells(cds1, k, resolution=1e-5)
+plot_cells(cds1)
+
+#save the tweets in the largest cluster, cluster 1
+y = which(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership == 1)
+df_new = df[y,]
+rownames(df_new) = rownames(df)[y]
+#save it as a dataframe for recursive clustering
+write.csv(df_new, "XXXX_cluster1.csv")
+
+#finding feauture words and plotting them:
 marker_test_res <- top_markers(cds, group_cells_by="partition")
 
 top_specific_markers <- marker_test_res %>%
