@@ -1,0 +1,114 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+# installations, run if needed
+# install.packages("devtools")
+# install.packages("BiocManager")
+# BiocManager::install(c('BiocGenerics', 'DelayedArray', 'DelayedMatrixStats',
+#                        'limma', 'S4Vectors', 'SingleCellExperiment',
+#                        'SummarizedExperiment', 'batchelor', 'Matrix.utils'))
+# devtools::install_github('cole-trapnell-lab/leidenbase')
+# devtools::install_github('cole-trapnell-lab/monocle3')
+```
+
+
+```{r}
+# libraries
+library(monocle3)
+library(dbscan)
+library(fpc)
+library(cluster)
+```
+
+
+```{r}
+#read in a dtm file "XXXX.csv"
+
+df = read.csv("../Data/dtm_all.csv", header = TRUE)
+```
+
+
+```{r}
+#creating the cell (document) metadata and gene (term) annotation data frames
+cell_names = df[,1]
+rownames(df) = df[,1]
+df = df[,-1]
+cell_metadata = as.data.frame(matrix(cell_names, ncol = 1))
+
+colnames(cell_metadata) = c("tweets")
+rownames(cell_metadata) = cell_names
+
+df = df[,colSums(df)>2] #removing terms that occur less than 2 times in the tweets 
+#(for the original datasets. We skipped this for subsequent steps of clustering)
+
+gene = colnames(df)
+gene_annotation = as.data.frame(matrix(gene, ncol = 1))
+colnames(gene_annotation) = c("gene_short_name")
+rownames(gene_annotation) = gene
+```
+
+
+```{r}
+#from the next line on, replace df with any of the previous dataframes created
+cds <- new_cell_data_set(t(df),
+                         cell_metadata = cell_metadata,
+                         gene_metadata = gene_annotation)
+```
+
+```{r}
+#estimate size factors:
+cds <- cds[,Matrix::colSums(exprs(cds)) != 0]
+cds <- estimate_size_factors(cds)
+```
+
+```{r}
+#preprocess the cell dataset and reduce dimensions. We haven't specified
+#any particular method for dimension reduction. So by default PCA will be chosen
+cds <- preprocess_cds(cds, num_dim = 100)
+plot_pc_variance_explained(cds)
+cds <- reduce_dimension(cds)
+plot_cells(cds)
+#We marked the tweets by 4 particular words belonging to our dataset
+```
+
+```{r}
+#there is a knee in the knn dist plot
+kNNdistplot(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),], minPts)
+```
+
+
+```{r}
+#set the tuning parameters of dbscan to these 2 values
+ds = fpc::dbscan(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),],eps,minPts)
+```
+
+
+```{r}
+#silhouette analysis:
+
+sil = c(); i = 1
+while(i <= 10){
+  cdsi = cds
+  cdsi = cluster_cells(cdsi, k=4*i, resolution=1e-5)
+  s = silhouette(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership , 
+                 dmatrix = tdist[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),
+                                 names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership)])
+  sil[i] = summary(s)$avg.width
+  print(sil[i])
+  i = i+1
+}
+plot(sil)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

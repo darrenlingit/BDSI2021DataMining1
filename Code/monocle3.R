@@ -64,7 +64,7 @@ ds = fpc::dbscan(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$m
 #In our case, the highest silhouette width was for k=4, but sometimes we chose higher values of k
 #as for k=4 there were often too many clusters, with smallest clusters containing not many tweets.
 #So, i guess, this step depends a lot on what we intend to do with the clustering results.
-#silhouette analysi:
+#silhouette analysis:
 
 sil = c(); i = 1
 while(i <= 10){
