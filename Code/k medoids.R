@@ -9,7 +9,9 @@ library(textmineR)
 #monocle3 does not work well with less observations. So we decided to do k-medoids clustering
 #when the number of tweets was small.
 
-df =  read.csv("../Data/dtm_all.csv", header = TRUE)
+df =  read.csv("XXXX.csv", header = TRUE)
+rownames(df) = df[,1]
+df = df[,-1]
 
 #find the optimal number of clusters using silhouette analysis
 
@@ -17,6 +19,8 @@ fviz_nbclust(df, pam, method = "silhouette")
 
 #suppose the optimal number of clusters is k
 #do k medoids clustering with k clusters:
+d = df
+rownames(d) = c(1:length(rownames(df))) #for better visualization with tweet ids, instead of the text
 tweet <- pam(df, k) 
 #visualize the clusters:
-fviz_cluster(tweet, data = df)
+fviz_cluster(tweet, data = d)
