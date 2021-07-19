@@ -3,9 +3,9 @@ library(dbscan)
 library(fpc)
 library(cluster)
 
-#read in a dtm file "XXXX.csv"
-
-df = read.csv("XXXX.csv", header = TRUE)
+# read in a dtm file "XXXX.csv"
+# change file path to that of DTMs from previous file
+df = read.csv("../Data/df_VA0_s0.csv", header = TRUE)
 
 #creating the cell (document) metadata and gene (term) annotation data frames
 cell_names = df[,1]

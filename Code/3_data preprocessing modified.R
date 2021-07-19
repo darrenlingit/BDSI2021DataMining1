@@ -1,3 +1,4 @@
+# make sure these packages are installed
 library(rtweet)
 library(ggplot2)
 library(dplyr)
@@ -6,13 +7,6 @@ library(igraph)
 library(ggraph)
 library(textmineR)
 library(SnowballC)
-setwd("C:/Users/STST/Downloads")
-#tweet_data=read.csv("vaccine_college_500.csv", header=TRUE)
-#tweet_data2=read.csv("vaccine_college_500_2.csv", header=TRUE)
-#tweet_datatemp = rbind(tweet_data, tweet_data2)
-#tweet_data = rbind(tweet_datatemp,tweet_data3)
-#tweet_data = tweet_data[!duplicated(tweet_data$text),]
-#tweet_data$stripped_text <- gsub("http.*","",  tweet_data$text)
 
 #since the processed tweets (from which we are going to form a dtm) have all apostrophes removed,
 #we are removing apostrophes from the list of stopwords.We checked the source code of CreateDtm
@@ -22,7 +16,7 @@ setwd("C:/Users/STST/Downloads")
 y = c(tm::stopwords("english"), tm::stopwords("SMART"))
 x <- gsub("'", '', y)
 
-df = read.csv("tweet_dtm.csv", header = TRUE)
+df = read.csv("../Data/tweet_dtm.csv", header = TRUE)
 dtm<- CreateDtm(df$text, df$text,
                 ngram_window = c(1, 1), stopword_vec = x,
                 lower = TRUE,
@@ -57,7 +51,7 @@ dtm.df = dtm.df[, -b]
 
 dtm.df$VA = 5*(df[,6])
 dtm.df$VaderSenti = round(5*(df[,2]))
-write.csv(dtm.df , "dtm_all.csv")
+write.csv(dtm.df , "../Data/dtm_all.csv")
 
 #Shall create dtms for VA = 1 and positive vader sentiment (1)
 #VA = 0 and positive vader sentiment(1)
@@ -73,16 +67,16 @@ col=dim(dtm.df)[2]
  
 df1 = dtm.df[v1,-c(col-1,col)]
 df1 = df1[,colSums(df1)>0]
-write.csv(df1, "df_VA1_s1.csv")
+write.csv(df1, "../Data/df_VA1_s1.csv")
 df2 = dtm.df[v2,-c(col-1,col)]
 df2 = df2[,colSums(df2)>0]
-write.csv(df2, "df_VA0_s1.csv")
+write.csv(df2, "../Data/df_VA0_s1.csv")
 df3 = dtm.df[v3,-c(col-1,col)]
 df3 = df3[,colSums(df3)>0]
-write.csv(df3, "df_VA1_s0.csv")
+write.csv(df3, "../Data/df_VA1_s0.csv")
 df4 = dtm.df[v4,-c(col-1,col)]
 df4 = df4[,colSums(df4)>0]
-write.csv(df4, "df_VA0_s0.csv")
+write.csv(df4, "../Data/df_VA0_s0.csv")
 
 
 
