@@ -12,7 +12,7 @@ library(textmineR)
 df =  read.csv("XXXX.csv", header = TRUE)
 rownames(df) = df[,1]
 df = df[,-1]
-
+df = df[rowSums(df)>0, colSums(df)>0]
 #find the optimal number of clusters using silhouette analysis
 
 fviz_nbclust(df, pam, method = "silhouette")
