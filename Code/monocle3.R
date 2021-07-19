@@ -5,7 +5,7 @@ library(cluster)
 
 #read in a dtm file "XXXX.csv"
 
-df = read.csv("../Data/dtm_all.csv", header = TRUE)
+df = read.csv("XXXX.csv", header = TRUE)
 
 #creating the cell (document) metadata and gene (term) annotation data frames
 cell_names = df[,1]
@@ -42,6 +42,12 @@ plot_cells(cds)
 #We marked the tweets by 4 particular words belonging to our dataset
 #plot_cells(cds, genes=c("student","requir", "mandat", "univ"))
 
+cds1 = cds
+cds1 = cluster_cells(cds1, k, resolution=1e-5)
+plot_cells(cds1)  #clustering with default value of k =20
+
+#determining k:
+
 #now before clustering, we may want to use dbscan for detecting small communities and noise.
 #In our case, dbscan detected most of the tweets as noise and 
 #since we already had a small dataset to begin with, we skipped this step to apply the 
@@ -51,9 +57,11 @@ plot_cells(cds)
 #for dbscan, we need to specify tuning parameters eps and minPts. For minPts,
 #take ln(n) (n is the number of tweets) and for eps, take the value at which 
 #there is a knee in the knn dist plot
-kNNdistplot(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),], minPts)
+kNNdistplot(df[names(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership),], minPts)
+#names(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership) gives the vector of tweets
+#involved in clustering; can use rownames as well
 #set the tuning parameters of dbscan to these 2 values
-ds = fpc::dbscan(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),],eps,minPts)
+ds = fpc::dbscan(df[names(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership),],eps,minPts)
 
 #now we have to determine the optimal value of k for the k nearest neighbours parameter
 #for clustering. This may be done by calculating and plotting the average silhouette width for varying k
@@ -64,7 +72,13 @@ ds = fpc::dbscan(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$m
 #In our case, the highest silhouette width was for k=4, but sometimes we chose higher values of k
 #as for k=4 there were often too many clusters, with smallest clusters containing not many tweets.
 #So, i guess, this step depends a lot on what we intend to do with the clustering results.
-#silhouette analysis:
+#silhouette analysi:
+
+library(text2vec)
+#calculate the tweet distance matrix using euclidean distance
+tdist = dist2(as.matrix(df), y = NULL, method = "euclidean", norm = "none")
+rownames(tdist) = cell_names
+colnames(tdist) = rownames(tdist)
 
 sil = c(); i = 1
 while(i <= 10){
@@ -89,10 +103,10 @@ y = which(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership == 1)
 df_new = df[y,]
 rownames(df_new) = rownames(df)[y]
 #save it as a dataframe for recursive clustering
-write.csv(df_new, "../Data/XXXX_cluster1.csv")
+write.csv(df_new, "XXXX_cluster1.csv")
 
 #finding feauture words and plotting them:
-marker_test_res <- top_markers(cds, group_cells_by="partition")
+marker_test_res <- top_markers(cds1, group_cells_by="cluster")
 
 top_specific_markers <- marker_test_res %>%
   filter(fraction_expressing >= 0.10) %>%
@@ -101,9 +115,9 @@ top_specific_markers <- marker_test_res %>%
 
 top_specific_marker_ids <- unique(top_specific_markers %>% pull(gene_id))
 
-plot_genes_by_group(cds,
+plot_genes_by_group(cds1,
                     top_specific_marker_ids,
-                    group_cells_by="partition",
+                    group_cells_by="cluster",
                     ordering_type="maximal_on_diag",
                     max.size=3)
 
