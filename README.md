@@ -11,8 +11,8 @@ Dr. Johann Gagnon-Bartsch, Juejue Wang, Heather Johnston
 
 ### Steps:
 
-0. Download tweets with "Downloading Tweets to a CSV.ipynb" (You can skip this if you already have the tweets downloaded)
-1. Determine sentiments with "vader_r_final.Rmd"
-2. Classify pro-vaccine or anti-vaccine with "Random Forest Labeling.ipynb"
-2.5. Clean up and create document-term matrices with "data preprocessing modified.R"
-4. Cluster with "monocle3.R" if DTM has more than 300 observations; cluster with "k medoids.R" if DTM has less than 300 observations
+0. Download tweets with "0_Downloading Tweets to a CSV.ipynb" (You can skip this if you already have the tweets downloaded)
+1. Determine sentiments with "1_vader_r.Rmd"
+2. Classify pro-vaccine or anti-vaccine with "2_Random Forest Labeling.ipynb"
+2.5. Clean up and create document-term matrices with "3_data preprocessing modified.R"
+4. Cluster with "4_monocle3.R" if DTM has more than 300 observations; cluster with "4_k medoids.R" if DTM has less than 300 observations

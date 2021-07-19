@@ -20,6 +20,7 @@ knitr::opts_chunk$set(echo = TRUE,comment = NA)
 
 # Setup
 ```{r, warning=FALSE, message=FALSE}
+if("vader" %in% rownames(installed.packages()) == FALSE) {install.packages("vader")}
 library(vader);library(xlsx);library(tidyverse)
 ```
 
@@ -57,7 +58,7 @@ vc2 <- vc1 %>%
 
 Let's not make lowercase or remove special characters, since those might be used in the vader algorithm.
 
-Remove @, quotation marks, and apostraphes
+Remove @, quotation marks, and apostrophes
 
 ```{r}
 vc2$clean_text <- gsub("'", '', vc2$clean_text)
@@ -75,6 +76,7 @@ vc3 <- vc2[!duplicated(vc2$clean_text),] %>%
 # Apply vader    
 
 ```{r}
+# this might take a while to run
 t1 <- Sys.time()
 vader_result <- vader_df(vc3$clean_text) 
 t2 <- t1 - Sys.time()
