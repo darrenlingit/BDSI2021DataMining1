@@ -43,7 +43,7 @@ plot_cells(cds)
 #plot_cells(cds, genes=c("student","requir", "mandat", "univ"))
 
 cds1 = cds
-cds1 = cluster_cells(cds1, k, resolution=1e-5)
+cds1 = cluster_cells(cds1, k=20, resolution=1e-5)
 plot_cells(cds1)  #clustering with default value of k =20
 
 #determining k:
@@ -57,11 +57,11 @@ plot_cells(cds1)  #clustering with default value of k =20
 #for dbscan, we need to specify tuning parameters eps and minPts. For minPts,
 #take ln(n) (n is the number of tweets) and for eps, take the value at which 
 #there is a knee in the knn dist plot
-kNNdistplot(df[names(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership),], minPts)
+#kNNdistplot(df[names(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership),], minPts)
 #names(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership) gives the vector of tweets
 #involved in clustering; can use rownames as well
 #set the tuning parameters of dbscan to these 2 values
-ds = fpc::dbscan(df[names(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership),],eps,minPts)
+#ds = fpc::dbscan(df[names(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership),],eps,minPts)
 
 #now we have to determine the optimal value of k for the k nearest neighbours parameter
 #for clustering. This may be done by calculating and plotting the average silhouette width for varying k
@@ -95,7 +95,7 @@ plot(sil)
 
 #if optimal value of k is k:
 cds1 = cds
-cds1 = cluster_cells(cds1, k, resolution=1e-5)
+cds1 = cluster_cells(cds1, k = 4*(which(sil == max(sil))), resolution=1e-5)
 plot_cells(cds1)
 
 #save the tweets in the largest cluster, cluster 1
