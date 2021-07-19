@@ -10,6 +10,8 @@ output:
     toc_float: true
     code_folding: 'show'
     df_print: 'paged'
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -26,10 +28,12 @@ library(vader);library(xlsx);library(tidyverse)
 Run cleaning and then Vader sentiment analysis on the final dataset
 
 
-# Load Data
+# Load Your Here Data
 
 ```{r, warning=TRUE, message=FALSE}
+# put the tweet csv file path here
 tweet_raw <- read_csv("../Data/all_tweet_data.csv")
+
 ```
 
 # Clean Data

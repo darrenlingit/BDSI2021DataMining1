@@ -9,7 +9,7 @@ library(textmineR)
 #monocle3 does not work well with less observations. So we decided to do k-medoids clustering
 #when the number of tweets was small.
 
-df =  read.csv("XXXX.csv", header = TRUE)
+df =  read.csv("../Data/dtm_all.csv", header = TRUE)
 
 #find the optimal number of clusters using silhouette analysis
 

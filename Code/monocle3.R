@@ -5,7 +5,7 @@ library(cluster)
 
 #read in a dtm file "XXXX.csv"
 
-df = read.csv("XXXX.csv", header = TRUE)
+df = read.csv("../Data/dtm_all.csv", header = TRUE)
 
 #creating the cell (document) metadata and gene (term) annotation data frames
 cell_names = df[,1]
@@ -89,7 +89,7 @@ y = which(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership == 1)
 df_new = df[y,]
 rownames(df_new) = rownames(df)[y]
 #save it as a dataframe for recursive clustering
-write.csv(df_new, "XXXX_cluster1.csv")
+write.csv(df_new, "../Data/XXXX_cluster1.csv")
 
 #finding feauture words and plotting them:
 marker_test_res <- top_markers(cds, group_cells_by="partition")
