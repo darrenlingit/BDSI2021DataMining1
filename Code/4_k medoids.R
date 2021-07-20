@@ -12,7 +12,8 @@ library(textmineR)
 df =  read.csv("XXXX.csv", header = TRUE)
 rownames(df) = df[,1]
 df = df[,-1]
-df = df[rowSums(df)>0, colSums(df)>0]
+df = df[, colSums(df)>0]
+df = df[rowSums(df)>0,]
 #find the optimal number of clusters using silhouette analysis
 
 fviz_nbclust(df, pam, method = "silhouette")
@@ -21,6 +22,6 @@ fviz_nbclust(df, pam, method = "silhouette")
 #do k medoids clustering with k clusters:
 d = df
 rownames(d) = c(1:length(rownames(df))) #for better visualization with tweet ids, instead of the text
-tweet <- pam(df, k) 
+tweet <- pam(d, k) 
 #visualize the clusters:
 fviz_cluster(tweet, data = d)
