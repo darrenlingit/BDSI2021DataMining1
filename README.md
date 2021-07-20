@@ -4,7 +4,7 @@ Our project focuses on implementing topic modeling methods for textual data obta
 The goal of our project is to develop a method for incorporating the sentiment of the tweets into clustering algorithms.
 
 ### Research Question:
-How do people's thoughts on vaccine mandates for college campuses vary between different levels of vaccine sentiments and vaccine acceptance?
+How do thoughts about vaccine mandates on college campuses vary between tweets with different levels of vaccine sentiments and vaccine acceptance?
 
 ### Authors:
 Jamie Forschmiedt, Darren Lin, Tannistha Mondal, Jakob Woerner
