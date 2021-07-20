@@ -10,7 +10,7 @@ df = read.csv("../Data/df_VA0_s0.csv", header = TRUE)
 #creating the cell (document) metadata and gene (term) annotation data frames
 cell_names = df[,1]
 rownames(df) = df[,1]
-df = df[,-1]
+df = df[,-1];df = df[,colSums(df)>0];df = df[rowSums(df)>0,] ; cell_names = rownames(df)
 cell_metadata = as.data.frame(matrix(cell_names, ncol = 1))
 
 colnames(cell_metadata) = c("tweets")
