@@ -3,7 +3,7 @@ This is the repository for Data Mining Group 1 in the Summer 2021 Big Data Summe
 Our project focuses on implementing topic modeling methods for textual data obtained from Twitter on the topic of COVID-19 vaccination. 
 The goal of our project is to develop a method for incorporating the sentiment of the tweets into clustering algorithms.
 
-### Research Question
+### Research Question:
 How do people's thoughts on vaccine mandates for college campuses vary between different levels of vaccine sentiments and vaccine acceptance?
 
 ### Authors:
