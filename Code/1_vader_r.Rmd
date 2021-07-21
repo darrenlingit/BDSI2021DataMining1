@@ -77,10 +77,10 @@ vc3 <- vc2[!duplicated(vc2$clean_text),] %>%
 
 ```{r}
 # this might take a while to run
-t1 <- Sys.time()
-vader_result <- vader_df(vc3$clean_text) 
-t2 <- t1 - Sys.time()
-t2-t1
+#t1 <- Sys.time()
+vader_result <- vader_df(vc3$clean_text)
+#t2 <- t1 - Sys.time()
+#t2-t1
 ```
 
 There might be a problematic tweet which caused an error/warning
