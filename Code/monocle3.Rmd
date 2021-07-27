@@ -1,11 +1,7 @@
 ---
-title: "R Notebook"
+title: "Monocole3 R Notebook"
 output: html_notebook
 ---
-
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
 ```{r}
 # installations, run if needed
@@ -26,13 +22,21 @@ library(dbscan)
 library(fpc)
 library(cluster)
 library(text2vec)
+library(dplyr)
+
+library(factoextra)
+library(FCPS)
+library(kmed)
+library(textmineR)
+
 ```
 
 
 ```{r}
 #read in a dtm file "XXXX.csv"
 
-df = read.csv("../Data/dtm_all.csv", header = TRUE)
+df_orig <- read.csv("../Data/df_VA0_s0.csv", header = TRUE)
+df <- df_orig
 ```
 
 
@@ -40,7 +44,7 @@ df = read.csv("../Data/dtm_all.csv", header = TRUE)
 #creating the cell (document) metadata and gene (term) annotation data frames
 cell_names = df[,1]
 rownames(df) = df[,1]
-df = df[,-1]
+df = df[,-1];df = df[,colSums(df)>0];df = df[rowSums(df)>0,] ; cell_names = rownames(df)
 cell_metadata = as.data.frame(matrix(cell_names, ncol = 1))
 
 colnames(cell_metadata) = c("tweets")
@@ -67,6 +71,7 @@ cds <- new_cell_data_set(t(df),
 #estimate size factors:
 cds <- cds[,Matrix::colSums(exprs(cds)) != 0]
 cds <- estimate_size_factors(cds)
+#size_factors(cds)
 ```
 
 ```{r}
@@ -77,30 +82,36 @@ plot_pc_variance_explained(cds)
 cds <- reduce_dimension(cds)
 plot_cells(cds)
 #We marked the tweets by 4 particular words belonging to our dataset
+#plot_cells(cds, genes=c("student","requir", "mandat", "univ"))
 ```
 
 ```{r}
-#there is a knee in the knn dist plot
-kNNdistplot(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),], minPts)
+# clustered
+cds1 = cds
+cds1 = cluster_cells(cds1, k=20, resolution=1e-5)
+plot_cells(cds1)  #clustering with default value of k =20
 ```
 
-
 ```{r}
-#set the tuning parameters of dbscan to these 2 values
-ds = fpc::dbscan(df[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),],eps,minPts)
-```
+#calculate the tweet distance matrix using euclidean distance
+tdist = dist2(as.matrix(df), y = NULL, method = "euclidean", norm = "none")
+rownames(tdist) = cell_names
+colnames(tdist) = rownames(tdist)
 
-
-```{r}
-#silhouette analysis:
 
 sil = c(); i = 1
 while(i <= 10){
   cdsi = cds
   cdsi = cluster_cells(cdsi, k=4*i, resolution=1e-5)
-  s = silhouette(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership , 
+  s = silhouette(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership, 
                  dmatrix = tdist[names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership),
                                  names(cdsi@clusters@listData$UMAP$cluster_result$optim_res$membership)])
+  
+  if (is.na(s)) {
+    # if s is na, then break
+    break
+  }
+  
   sil[i] = summary(s)$avg.width
   print(sil[i])
   i = i+1
@@ -108,8 +119,78 @@ while(i <= 10){
 plot(sil)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+```{r}
+#save the tweets in the largest cluster, cluster 1
+y = which(cds1@clusters@listData$UMAP$cluster_result$optim_res$membership == 1)
+df_new = df[y,]
+rownames(df_new) = rownames(df)[y]
+write.csv(df_new, "../Data/XXXX_cluster1.csv")
+```
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+#finding feature words and plotting them:
+marker_test_res <- top_markers(cds1, group_cells_by="cluster")
+
+top_specific_markers <- marker_test_res %>%
+  filter(fraction_expressing >= 0.10) %>%
+  group_by(cell_group) %>%
+  top_n(1, pseudo_R2)
+
+top_specific_marker_ids <- unique(top_specific_markers %>% pull(gene_id))
+```
+
+
+```{r}
+# # our feature plot
+# plot_genes_by_group(cds1,
+#                     top_specific_marker_ids,
+#                     group_cells_by="cluster",
+#                     ordering_type="maximal_on_diag",
+#                     max.size=3)
+```
+
+Below is the code for k-medoids clustering.
+```{r}
+# df2 <- df_orig
+# rownames(df2) = df2[,1]
+# df2 = df2[,-1]
+# df2 = df2[, colSums(df2)>0]
+# df2 = df2[rowSums(df2)>0,]
+```
+
+```{r}
+# try plotting feature plot
+# if it doesn't work then there are too little clusters, and default to k-medoids clustering
+
+tryCatch(plot_genes_by_group(cds1,
+                             top_specific_marker_ids,
+                             group_cells_by="cluster",
+                             ordering_type="maximal_on_diag",
+                             max.size=3),
+         
+         
+         error = function(e) {
+           
+           df2 <- df_orig
+           rownames(df2) = df2[,1]
+           df2 = df2[,-1]
+           df2 = df2[, colSums(df2)>0]
+           df2 = df2[rowSums(df2)>0,]
+           
+           n_clusters = fviz_nbclust(df2, pam, method = "silhouette")
+           k = which.max(n_clusters$data$y)
+           
+           d = df2
+           rownames(d) = c(1:length(rownames(df))) #for better visualization with tweet ids, instead of the text
+           tweet = pam(d, k)
+           #clust_plot = fviz_cluster(tweet, data = d)
+           fviz_cluster(tweet, data = d)
+         }
+)
+
+```
+
+
+
