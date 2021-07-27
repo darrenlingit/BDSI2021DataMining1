@@ -35,7 +35,7 @@ library(textmineR)
 ```{r}
 #read in a dtm file "XXXX.csv"
 
-df_orig <- read.csv("../Data/df_VA0_s0.csv", header = TRUE)
+df_orig <- read.csv("../Data/XXXX.csv", header = TRUE)
 df <- df_orig
 ```
 
@@ -143,28 +143,10 @@ top_specific_marker_ids <- unique(top_specific_markers %>% pull(gene_id))
 
 
 ```{r}
-# # our feature plot
-# plot_genes_by_group(cds1,
-#                     top_specific_marker_ids,
-#                     group_cells_by="cluster",
-#                     ordering_type="maximal_on_diag",
-#                     max.size=3)
-```
-
-Below is the code for k-medoids clustering.
-```{r}
-# df2 <- df_orig
-# rownames(df2) = df2[,1]
-# df2 = df2[,-1]
-# df2 = df2[, colSums(df2)>0]
-# df2 = df2[rowSums(df2)>0,]
-```
-
-```{r}
 # try plotting feature plot
 # if it doesn't work then there are too little clusters, and default to k-medoids clustering
 
-tryCatch(plot_genes_by_group(cds1,
+trycatch_value <- tryCatch(plot_genes_by_group(cds1,
                              top_specific_marker_ids,
                              group_cells_by="cluster",
                              ordering_type="maximal_on_diag",
@@ -173,22 +155,38 @@ tryCatch(plot_genes_by_group(cds1,
          
          error = function(e) {
            
-           df2 <- df_orig
-           rownames(df2) = df2[,1]
-           df2 = df2[,-1]
-           df2 = df2[, colSums(df2)>0]
-           df2 = df2[rowSums(df2)>0,]
+           return(1)
            
-           n_clusters = fviz_nbclust(df2, pam, method = "silhouette")
-           k = which.max(n_clusters$data$y)
            
-           d = df2
-           rownames(d) = c(1:length(rownames(df))) #for better visualization with tweet ids, instead of the text
-           tweet = pam(d, k)
-           #clust_plot = fviz_cluster(tweet, data = d)
-           fviz_cluster(tweet, data = d)
          }
 )
+
+```
+
+```{r}
+# if it fails to plot monocle3, then try k-medoids clustering instead
+if (trycatch_value == 1) {
+  
+  df2 <- df_orig
+  rownames(df2) = df2[,1]
+  df2 = df2[,-1]
+  df2 = df2[, colSums(df2)>0]
+  df2 = df2[rowSums(df2)>0,]
+  
+  n_clusters = fviz_nbclust(df2, pam, method = "silhouette")
+  k = which.max(n_clusters$data$y)
+  
+  d = df2
+  rownames(d) = c(1:length(rownames(df))) #for better visualization with tweet ids, instead of the text
+  tweet = pam(d, k)
+  #clust_plot = fviz_cluster(tweet, data = d)
+  fviz_cluster(tweet, data = d)
+  
+} else {
+  
+  trycatch_value
+  
+}
 
 ```
 
